@@ -170,21 +170,37 @@ duration(Other) ->
 do_duration(Str) ->
     case do_duration(Str, 0) of
         skip -> Str;
-        Int -> Int
+        Num -> round(Num)
     end.
 do_duration(Str, Sum) ->
-    {ok, MP} = re:compile("^([0-9]+)(f|F|w|W|d|D|h|H|m|M|s|S|ms|MS)([0-9]+.+)"),
+    {ok, MP} = re:compile("^([0-9\.]+)(f|F|w|W|d|D|h|H|m|M|s|S|ms|MS)([0-9\.]+.+)"),
     case re_run_first(Str, MP) of
         {match, [Val, Unit, Next]} ->
-            do_duration(Next, Sum + calc_duration(list_to_integer(Val), string:lowercase(Unit)));
+            case get_decimal(Val) of
+                D when is_integer(D) orelse is_float(D) ->
+                    do_duration(Next, Sum + calc_duration(D, string:lowercase(Unit)));
+                {error, badarg} ->
+                    skip
+            end;
         nomatch ->
-            {ok, LastMP} = re:compile("^([0-9]+)(f|F|w|W|d|D|h|H|m|M|s|S|ms|MS)$"),
+            {ok, LastMP} = re:compile("^([0-9\.]+)(f|F|w|W|d|D|h|H|m|M|s|S|ms|MS)$"),
             case re_run_first(Str, LastMP) of
                 {match, [Val, Unit]} ->
-                    Sum + calc_duration(list_to_integer(Val), string:lowercase(Unit));
+                    case get_decimal(Val) of
+                        D ->
+                            Sum + calc_duration(D, string:lowercase(Unit))
+                    end;
                 nomatch ->
                     skip
             end
+    end.
+
+get_decimal([$. | _]=Num) ->
+    get_decimal(["0" | Num]);
+get_decimal(Num) ->
+    case string:to_float(Num) of
+        {F, []} -> F;
+        {error, no_float} -> {I, []} = string:to_integer(Num), I
     end.
 
 calc_duration(Val, "f")  -> Val * ?FORTNIGHT;
