@@ -35,8 +35,9 @@ dialyzer:
 	$(REBAR) dialyzer
 
 .PHONY: es
-es: compile
-	$(REBAR) escriptize
+es: export HOCON_ESCRIPT = true
+es: $(REBAR)
+	$(REBAR) as escript es
 
 .PHONY: elvis
 elvis:
