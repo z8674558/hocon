@@ -1,4 +1,4 @@
-REBAR := rebar3
+REBAR := $(CURDIR)/rebar3
 
 .PHONY: all
 all: es
